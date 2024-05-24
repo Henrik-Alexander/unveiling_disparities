@@ -441,7 +441,7 @@ tfr_fra[, total := .N, by = year]
 tfr_fra <- tfr_fra[total <= mean(tfr_fra$total), ]
 
 # Remove sex columns
-asfr_fra <- asfr_fra[, names(asfr_fra)[!str_detect(names(asfr_fra), "sex")]]
+asfr_fra <- asfr_fra[, c("sex_female", "sex_male") := NULL]
 
 # Save the data
 save(asfr_fra, file = "data/asfr_fra.Rda")

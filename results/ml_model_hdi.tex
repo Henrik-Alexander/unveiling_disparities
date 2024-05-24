@@ -1,0 +1,30 @@
+
+\begin{table}
+\begin{center}
+\begin{tabular}{l c c c}
+\hline
+ & Model 1 & Model 2 & Model 3 \\
+\hline
+(Intercept)                  & $1.83^{***}$  & $1.58^{***}$  & $0.88^{**}$ \\
+                             & $(0.01)$      & $(0.04)$      & $(0.31)$    \\
+hdi                          & $-0.99^{***}$ & $-0.71^{***}$ & $0.06$      \\
+                             & $(0.01)$      & $(0.04)$      & $(0.33)$    \\
+\hline
+AIC                          & $-6474.76$    & $-7113.97$    & $-7908.73$  \\
+BIC                          & $-6451.80$    & $-7085.28$    & $-7868.55$  \\
+Log Likelihood               & $3241.38$     & $3561.99$     & $3961.36$   \\
+Num. obs.                    & $2297$        & $2297$        & $2297$      \\
+Num. groups: year            & $32$          & $32$          & $32$        \\
+Var: year (Intercept)        & $0.00$        & $0.00$        & $0.00$      \\
+Var: Residual                & $0.00$        & $0.00$        & $0.00$      \\
+Num. groups: country         & $$            & $6$           & $6$         \\
+Var: country (Intercept)     & $$            & $0.00$        & $0.56$      \\
+Var: country hdi             & $$            & $$            & $0.66$      \\
+Cov: country (Intercept) hdi & $$            & $$            & $-0.61$     \\
+\hline
+\multicolumn{4}{l}{\scriptsize{$^{***}p<0.001$; $^{**}p<0.01$; $^{*}p<0.05$}}
+\end{tabular}
+\caption{Statistical models}
+\label{table:coefficients}
+\end{center}
+\end{table}

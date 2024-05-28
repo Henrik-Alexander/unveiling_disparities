@@ -174,7 +174,7 @@ labels <- dev |>
 # Estimate the regression model
 plot_a <- ggplot(dev, aes(hdi, tfr_ratio, group = country, colour = country, fill = country, shape = country)) +
   geom_hline(yintercept = 1) +
-  geom_point(colour = "white", stroke = 0.05, size = 2) +
+  geom_point(colour = "white", stroke = 0.08, size = 2.5) +
   geom_smooth(method = "lm", se = FALSE, formula = "y ~ x") +
   scale_fill_viridis_d(name = "Country", option = "D") +
   scale_shape_manual(name = "Country", values = shape_countries) +
@@ -220,7 +220,7 @@ stargazer(model_quantum_state,
 # Estimate the regression model
 plot_b <- ggplot(dev, aes(gdi, tfr_ratio, fill = country, colour = country, group = country, shape = country)) +
   geom_hline(yintercept = 1) +
-  geom_point(colour = "white", stroke = 0.05, size = 2) +
+  geom_point(colour = "white", stroke = 0.08, size = 2.5) +
   geom_smooth(method = "lm", se = FALSE, formula = "y ~ x") +
   scale_fill_viridis_d(name = "Country", option = "D") +
   scale_colour_viridis_d(name = "Country", option = "D") +
@@ -286,7 +286,7 @@ stargazer(model_timing,
 # Estimate the regression model
 plot_d <- ggplot(dev, aes(x = gdi, y = mac_diff, colour = country, fill = country, shape = country)) +
   geom_hline(yintercept = 0) +
-  geom_point(colour = "white", stroke = 0.05, size = 2) +
+  geom_point(colour = "white", stroke = 0.08, size = 2.5) +
   geom_smooth(method = "lm", se = FALSE, formula = "y ~ x") +
   scale_fill_viridis_d(name = "Country", option = "D") +
   scale_colour_viridis_d(name = "Country", option = "D") +

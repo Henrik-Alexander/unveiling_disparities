@@ -5,6 +5,8 @@
 # Date: 25.09.2023                     #
 ########################################
 
+rm(list = ls())
+
 # Load the decomposition module
 library(remotes)
 install_github("timriffe/DemoDecomp")
@@ -50,12 +52,13 @@ for(country in countries) load(paste0("data/asfr_", country, ".Rda"))
 # Harmonize the US data
 asfr_us <- rename(asfr_us, region = state)
 
+# Remove missing region informaiton in Germany
+asfr_deu <- asfr_deu[!is.na(asfr_deu$region), ]
+
 ## Collect the data
 asfr <- mget(ls(pattern = "asfr_"))
 
 ### Decomposition -----------------------------------------
-
-df <- asfr_mex
 
 # Create five year age groups
 aggregate_to5 <- function(df = asfr_mex) {
@@ -75,36 +78,48 @@ asfr <- map(asfr, aggregate_to5)
 #  Make the counterfactual estimation
 dataset <- asfr_deu
 
-tfr_decomposition <- function(dataset) {}
-
-
-#
-years <- unique(dataset$year)
-regions <- unique(dataset$region)
-
-for (year in years) {}
-  for (region in regions) {}
-
-    # Prepare the data
-    sex <- c("female", "male")
-    variables <- c("births", "exposure")
-    vars <- as.vector(outer(variables, sex, paste, sep = "_"))
-    tmp <- dataset[dataset$year == year & dataset$region == region, c(vars, "age_group")]
-    #tmp <- tmp |> mutate(across(everything(), ~ replace_na(.x, 0)))
+tfr_decomposition <- function(dataset, years = unique(dataset$year), regions = unique(dataset$region)) {
     
-    # Make the horiushi decomposition
-    tmp <- tmp |> 
-      pivot_longer(cols = ends_with("male"), names_to = c("measure", "sex"), names_sep = "_") |> 
-      pivot_wider(names_from = "sex") |> 
-      arrange(measure, age_group)
-    
-    # Make the decomposition
-    tmp$contribution <- horiuchi(calc_tfr, tmp$male, tmp$female, N = 20)
-    tmp$difference <- calc_tfr(tmp$male) - calc_tfr(tmp$female)
-    
-    return(tmp)
-    
+  results <- vector("list", length = length(years) * length(regions))
+  names(results) <- as.vector(outer(years, regions, paste, sep = "_"))
+  
+  for (y in years) {
+    for (r in regions) {
+  
+      # Prepare the data
+      sex <- c("female", "male")
+      variables <- c("births", "exposure")
+      vars <- as.vector(outer(variables, sex, paste, sep = "_"))
+      tmp <- dataset[dataset$region == r & dataset$year == y, c("age_group", vars)]
+      #tmp <- tmp |> mutate(across(everything(), ~ replace_na(.x, 0)))
+      
+      # Make the horiushi decomposition
+      tmp <- tmp |> 
+        pivot_longer(cols = ends_with("male"), names_to = c("measure", "sex"), names_sep = "_") |> 
+        pivot_wider(names_from = "sex") |> 
+        arrange(measure, age_group)
+      
+      # Make the decomposition
+      tmp$contribution <- horiuchi(calc_tfr, tmp$male, tmp$female, N = 20)
+      tmp$difference <- calc_tfr(tmp$male) - calc_tfr(tmp$female)
+      
+      # Assign the result 
+      results[[paste(y, r, sep = "_")]] <- tmp
+    }} 
+  return(results)
 }
+
+# Make the decompositions across countries
+for (country in countries){
+  cat("Country:", county)
+  tfr_decomposition(asfr[[county]])
+}
+
+decomp_res <- map(asfr, tfr_decomposition)
+
+
+
+####
     
     ggplot(tmp, aes(x = age_group, y = contribution * difference, fill = measure)) +
       geom_col() + 

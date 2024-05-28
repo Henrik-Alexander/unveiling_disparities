@@ -15,6 +15,9 @@ install_github("timriffe/DemoDecomp")
 library(tidyverse)
 library(DemoDecomp)
 
+# Load funciton
+source("functions/functions.R")
+
 # Functions -------------------------------------
 
 # Function to estimate the tfr
@@ -80,39 +83,44 @@ dataset <- asfr_deu
 
 tfr_decomposition <- function(dataset, years = unique(dataset$year), regions = unique(dataset$region)) {
     
-  results <- vector("list", length = length(years) * length(regions))
-  names(results) <- as.vector(outer(years, regions, paste, sep = "_"))
-  
-  for (y in years) {
-    for (r in regions) {
+  tmp <- split(dataset, list(dataset$region, dataset$year))
   
       # Prepare the data
+      prep_data <- function(tmp) {
+  
       sex <- c("female", "male")
       variables <- c("births", "exposure")
       vars <- as.vector(outer(variables, sex, paste, sep = "_"))
-      tmp <- dataset[dataset$region == r & dataset$year == y, c("age_group", vars)]
-      #tmp <- tmp |> mutate(across(everything(), ~ replace_na(.x, 0)))
-      
+      tmp <- tmp[, c(vars, "age_group")]
+
       # Make the horiushi decomposition
       tmp <- tmp |> 
         pivot_longer(cols = ends_with("male"), names_to = c("measure", "sex"), names_sep = "_") |> 
         pivot_wider(names_from = "sex") |> 
         arrange(measure, age_group)
+      return(tmp)
+      }
       
       # Make the decomposition
-      tmp$contribution <- horiuchi(calc_tfr, tmp$male, tmp$female, N = 20)
-      tmp$difference <- calc_tfr(tmp$male) - calc_tfr(tmp$female)
+      decomp_data <- function(tmp){
+        tmp$contribution <- horiuchi(calc_tfr, tmp$male, tmp$female, N = 20)
+        tmp$difference <- calc_tfr(tmp$male) - calc_tfr(tmp$female)
+        return(tmp)
+      }
+    
+      tmp <- lapply(tmp, prep_data)
+      tmp <- lapply(tmp, decomp_data)
+      tmp <- rbindlist(tmp, idcol = "label")
+      tmp$region <- str_split(tmp$label, pattern = "\\.", simplify = T)[, 1]
+      tmp$year <- as.numeric(str_split(tmp$label, pattern = "\\.", simplify = T)[, 2])
       
-      # Assign the result 
-      results[[paste(y, r, sep = "_")]] <- tmp
-    }} 
-  return(results)
+  return(tmp)
 }
 
 # Make the decompositions across countries
-for (country in countries){
-  cat("Country:", county)
-  tfr_decomposition(asfr[[county]])
+for (country in names(asfr)){
+  cat("Country:", country, "\n")
+  tfr_decomposition(asfr[[country]])
 }
 
 decomp_res <- map(asfr, tfr_decomposition)

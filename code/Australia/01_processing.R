@@ -18,6 +18,9 @@ source("functions/QOSplitPar.R")
 # Set the path to the data
 path_aus <- "U:/data/aus/birth_registers/"
 
+### Clean age column
+
+
 
 ### Clean the male data ------------------------------------
 

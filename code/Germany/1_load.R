@@ -169,6 +169,11 @@ births_f$sex <- "male"
 births_m <- rename(births_m, age_group = age_mother)
 births_f <- rename(births_f, age_group = age_father)
 
+# Clean the age_groups
+births_f$age_group <- clean_age_group(births_f$age_group)
+births_m$age_group <- clean_age_group(births_m$age_group)
+
+
 # Bind the data
 births <- bind_rows(births_m, births_f)
 

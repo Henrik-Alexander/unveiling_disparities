@@ -39,7 +39,7 @@
   pop <- pop |>
     group_by(entity, age, sex) |>
     mutate(lag_pop = lag(population, order_by = year), 
-           mid_year_pop = (lag_pop + population) / 2) |> 
+           exposure = (lag_pop + population) / 2) |> 
     ungroup()
   
   

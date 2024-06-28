@@ -22,7 +22,7 @@ source("Functions/Graphics.R")
 path_dev <- "U:/data/global/subnational_hdi/"
 
 # Specify countries
-countries <- c("Australia", "United States", "Germany", "Finland", "Spain", "France", "Mexico")
+countries <- c("Australia", "United States", "Germany", "Finland", "Spain", "France", "Mexico", "Colombia")
 
 ### Load the data ----------------------------------
 

@@ -34,7 +34,7 @@ load("data/development.Rda")
 ### Prepare the fertility data ===================================
 
 # Preperate the Finnish data
-fert_fin <- read.csv("data/regional_tfrs_macs.csv")
+fert_fin <- read.csv("U:/data/fin/birth_registers/regional_tfrs_macs.csv")
 
 # Estimate the regional TFRS
 fert_fin <- fert_fin |> 

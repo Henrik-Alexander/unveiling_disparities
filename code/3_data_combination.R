@@ -31,6 +31,13 @@ source("Functions/Graphics.R")
 # Load the development data
 load("data/development.Rda")
 
+### Functions ----------------------------------------------------
+
+# Estimate counterfactual
+tmp <- split(asfr_aus, list(asfr_aus$region, asfr_aus$year))
+tmp1 <- tmp[[1]]
+
+
 ### Prepare the fertility data ===================================
 
 # Preperate the Finnish data
@@ -83,8 +90,8 @@ fert_aus_nat <- asfr_aus |>
 ### Clean the Spanish data -------------------------------
 
 # Load the spanish data
-load("Data/tfr_esp_nat.Rda")
-load("data/tfr_esp.Rda")
+load("Data/asfr_esp_nat.Rda")
+load("data/asfr_esp.Rda")
 
 # Clean the regional data
 fert_esp <- tfr_esp_reg |> 

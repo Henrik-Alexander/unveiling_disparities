@@ -36,7 +36,7 @@ reset_code_dpto <- function (dpto) {
   dpto[dpto == "05"] <- "Antioquia"
   dpto[dpto == "08"] <- "Atlántico"
   dpto[dpto == "11"] <- "Bogotá"
-  dpto[dpto == "14"] <- "Bolivar"
+  dpto[dpto == "13"] <- "Bolivar"
   dpto[dpto == "15"] <- "Boyaca"
   dpto[dpto == "17"] <- "Caldas"
   dpto[dpto == "18"] <- "Caqueta"

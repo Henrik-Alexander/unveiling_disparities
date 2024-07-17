@@ -33,7 +33,7 @@ path_aus <- "U:/data/aus/"
 asfr_aus |> 
   filter(year %in% c(1990, 2020)) |> 
   pivot_longer(cols = starts_with("asfr_"), names_prefix = "asfr_") |> 
-  ggplot(aes(x = age, y = value, group = name, colour = sex)) +
+  ggplot(aes(x = age_group, y = value, group = name, colour = sex)) +
     geom_point() +
     facet_grid(year ~ region) 
 
@@ -46,18 +46,21 @@ load("Data/tfr_aus.Rda")
 ### Load the shape file ----------------------
 
 # Load the shape file
-shape <- read_sf(paste0(path_aus, "shape/STE_2021_AUST_GDA2020.shp"))
+map_aus <- read_sf(paste0(path_aus, "shape/STE_2021_AUST_GDA2020.shp"))
 
 # Reduce the data
-shape <- shape |> 
+map_aus <- map_aus |> 
   clean_names() |> 
   select(ste_code21, ste_name21, geometry) |> 
-  rename(state_code = ste_code21,
-         state = ste_name21)
+  rename(region_code = ste_code21,
+         region = ste_name21) |> 
+  mutate(country = "Australia")
 
 # Simplify the map
-shape <- st_simplify(shape, preserveTopology = TRUE, dTolerance = 10000)
-plot(shape)
+map_aus <- st_simplify(map_aus, preserveTopology = TRUE, dTolerance = 10000)
+
+# Save the australian map data
+save(map_aus, file = "data/map_data/map_aus.Rda")
 
 ### Sex differences in fertility --------------
 
@@ -143,7 +146,5 @@ tfr_aus |>
   
 ggsave(last_plot(), filename = "Figures/capital_tfr_aus.pdf")
 
-# Save the australian map data
-save(map_aus, file = "data/map_data/map_aus.Rda")
 
 ### END #############################################

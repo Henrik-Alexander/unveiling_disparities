@@ -14,6 +14,7 @@ library(patchwork)
 
 # Load the graphics
 source("functions/Graphics.R")
+source("functions/stable_population.R")
 
 # Load the fertility data
 load("data/fert_data_subnational.Rda")
@@ -57,10 +58,19 @@ harmonize_country_srb <- function(country_names) {
 }
 
 # Plot the impact of one determinant on tfr approximation
-plot_tfr_ratio <- function(data, det, name) {
-  ggplot(data, aes(x=det, y=tfr_ratio_stable_pop, colour = country)) + 
+plot_tfr_ratio <- function(det, label, data = stable_pop) {
+  p <- ggplot(data, aes_string(x=det, y="tfr_ratio_stable_pop", colour="Country")) + 
+    geom_hline(yintercept = 1) +
     geom_point() +
-    geom_abline(yintercept = 0)
+    scale_y_continuous("TFR ratio", expand = c(0, 0)) +
+    scale_colour_viridis_d(name = "")
+  if (is.numeric(data[[det]])){
+    p <- p +scale_x_continuous(label, expand = c(0, 0))
+  } else {
+    p <- p + scale_x_discrete(label) +
+      coord_flip()
+  }
+  return(print(p))
 }
 
 ### Load the Schoumaker and Dudel data -----------------
@@ -68,8 +78,9 @@ plot_tfr_ratio <- function(data, det, name) {
 # Load the schoumaker data
 # Data accessed from: https://perso.uclouvain.be/bruno.schoumaker/data/
 path_global <- "U:/data/global/"
-sd <- read.xlsx(paste0(path_global, "schoumaker_male/A. Estimates of male and female fertility.xlsx"), sheetIndex = 1)
-sd <- sd[, c("Country.name", "Female.TFR..shown.on.Figures.", "Male.TFR..shown.on.Figures.")]
+sd <- read_xlsx(paste0(path_global, "schoumaker_male/A. Estimates of male and female fertility.xlsx"), sheet = 1)
+sd <- janitor::clean_names(sd)
+sd <- sd[, c("country_name", "female_tfr_shown_on_figures", "male_tfr_shown_on_figures")]
 names(sd) <- c("country", "tfr_female", "tfr_male")
 sd$data <- "Schoumaker's fertility estimates"
 sd[, c("tfr_male", "tfr_female")] <- apply(sd[, c("tfr_male", "tfr_female")], 2, as.numeric)
@@ -87,7 +98,7 @@ hfc <- aggregate(ASFR ~ CNTRY + Year1, data = hfc, FUN = sum)
 names(hfc) <- c("CNTRY", "Year", "tfr_male") 
 
 # Load the female fertility data from the human fertility database
-hfd <- read.xlsx(paste0(path_global, "/human_fertility_database/TFR.xlsx"), sheetIndex = 2, startRow = 3)
+hfd <- read_xlsx(paste0(path_global, "/human_fertility_database/TFR.xlsx"), sheet = 2, skip = 2)
 hfd <- pivot_longer(hfd, cols = !PERIOD, names_to = "CNTRY", values_to = "tfr_female")
 
 # Get the meta information on countries and country codes in HFD
@@ -142,6 +153,16 @@ growth_rates$country <- harmonize_country_srb(growth_rates$country)
 lt_m <- load_life_table(path = "U:/data/global/human_mortality_database/lt_male/mltper_1x1")
 t_m <- left_join(lt_m, asfr_m, by = c("country"="CNTRY", "Year"="Year1","Age"="Age"))
 t_m <- t_m |> group_by(country, Year) |> mutate(na = sum(!is.na(ASFR))) |> filter(na > 0)
+
+
+# Estimate the stable population growth rate
+leslies <- t_f |> group_by(country, Year) |> mutate(na = sum(!is.na(ASFR))) |> filter(na >0) |> select(-na)
+leslies <- split(leslies, list(leslies$country, leslies$Year), drop = T)
+leslies <- lapply(leslies, create_leslie)
+growth_rates_f <- map_dbl(leslies, stable_pop_growth)
+stable_age_population <- map(leslies, stable_pop_age)
+
+# Estimate the generation length
 t_m <- t_m |> filter(Age < 55) |> group_by(country) |> mutate(px = cumprod(1-qx))
 t_m$ASFR[is.na(t_m$ASFR)] <- 0
 t_m <- t_m |> 
@@ -153,9 +174,19 @@ lt_f <- load_life_table(path = "U:/data/global/human_mortality_database/lt_femal
 asfr_f <- read.table("U:/data/global/human_fertility_database/asfrRR.txt", skip = 2, header=T)
 asfr_f$Age <- as.numeric(asfr_f$Age)
 t_f <- left_join(lt_f, asfr_f, by = c("country"="Code", "Year"="Year","Age"))
+t_f$ASFR[is.na(t_f$ASFR)] <- 0
+
+
+# Estimate the stable population growth rate
+leslies <- t_f |> group_by(country, Year) |> mutate(na = sum(!is.na(ASFR))) |> filter(na >0) |> select(-na)
+leslies <- split(leslies, list(leslies$country, leslies$Year), drop = T)
+leslies <- lapply(leslies, create_leslie)
+growth_rates_f <- map_dbl(leslies, stable_pop_growth)
+stable_age_population <- map(leslies, stable_pop_age)
+
+# Estimate the mean gernation length
 t_f <- t_f |> group_by(country, Year) |> mutate(na = sum(!is.na(ASFR))) |> filter(na > 0)
 t_f <- t_f |> filter(Age < 55) |> group_by(country) |> mutate(px = cumprod(1-qx))
-t_f$ASFR[is.na(t_f$ASFR)] <- 0
 t_f <- t_f |>
   group_by(Year, country) |>
   summarise(t_f = estimate_generation_length(age=Age, px=px, fx=ASFR), .groups = "drop")
@@ -177,7 +208,6 @@ timing$px_maf <- timing$lx_father / 100000
 timing <- timing[, c("Code", "Year", "Country", "maf", "mac", "px_mac", "px_maf")]
 
 
-
 ### Combine the data
 stable_pop <- left_join(generation_length, timing, c("Year", "country"="Code"))
 stable_pop <- left_join(stable_pop, srb, by = c("Country"="country", "Year"="year"))
@@ -188,11 +218,29 @@ stable_pop <- na.omit(stable_pop)
 stable_pop <- rename(stable_pop, country_code = country)
 
 # Estimate the TFR ratio approximation
-stable_pop$tfr_ratio_stable_pop <- with(stable_pop, 1/srb * px_mac/px_maf * exp(r*(t_m-t_f)))
+stable_pop$tfr_ratio_stable_pop <- with(stable_pop, 1/(srb*100) * px_mac/px_maf * exp(r*(t_m-t_f)))
+
+# Plot the data
+variable_labels <- c("Year", "Country", "Generation length (men)", "Generation length (women)",
+                    "Mean age at fatherhood", "Mean age at childbearing", "Probability to survive to MAC",
+                    "Probability to survive to MAF", "Sex ratio at birth", "Growth rate")
+variable_names <- c("Year", "Country", "t_m", "t_f", "maf", "mac", "px_mac", "px_maf", "srb", "r")
+
+plots <- map2(.x = variable_names,.y = variable_labels, .f = plot_tfr_ratio)
+wrap_plots(plots, nrow = 5, ncol = 2) + plot_layout(guides = "collect")
+
+# Check the different components
+hist(1/stable_pop$srb)
+
+# Ratio of survival probabilites
+hist(with(stable_pop, px_mac / px_maf))
+
+# Difference in the generation length
+hist(with(stable_pop, exp(r * (t_m - t_f))))
 
 
+## Combine the data -------------------------
 
-## Combine the data ----------------------------------
 
 # Add a data column
 fert$data <- "Subnational Fertility Data"

@@ -12,7 +12,7 @@ library(tidyverse)
 
 # set theme
 
-theme_set(theme_test(base_size = 20, base_family = "serif"))
+theme_set(theme_test(base_size = 14, base_family = "serif"))
 theme_update(plot.margin = margin(0.1, 0.6, 0.1, 0.1, "cm"),
              panel.grid.major.y = element_line(colour = "grey80", linewidth = 0.3, linetype = "dotted"),
              panel.grid.major.x = element_line(colour = "grey80", linewidth = 0.3, linetype = "dotted"),
@@ -40,14 +40,15 @@ MPIDRyellow <- "#FAAF3B"
 
 
 # Create the shape vector
-shape_countries <- c("Mexico" = 21, "United States" = 25, "Australia" = 22, "France" = 25, "Germany" =  24, "Finland" = 23)
+shape_countries <- c("Mexico" = 21, "United States" = 25, "Australia" = 22, "France" = 25, "Germany" =  24, "Finland" = 23, "Colombia" = 25)
 
 # plot the result
-viridis_palette = c("Australia" = "#440154FF", 
-                    "Finland" = "#414487FF",
-                    "France" = "#2A788EFF",
-                    "Germany" = "#22A884FF",
-                    "Mexico" = "#7AD151FF",
+viridis_palette = c("Australia" = "#440154FF",
+                    "Colombia" = "#443A83FF",
+                    "Finland" = "#31688EFF",
+                    "France" = "#21908CFF",
+                    "Germany" = "#35B779FF",
+                    "Mexico" = "#8FD744FF",
                     "United States" = "#FDE725FF")
 
 

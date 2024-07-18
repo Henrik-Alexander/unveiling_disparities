@@ -38,6 +38,12 @@ impute_variable <- function(data = d, outcome = age_mot, predictor = age_fat){
   return(tmp)
 }
 
+### Clean age group -------------------------------------------------
+
+clean_age_group <- function(age_group) {
+  age_group <- gsub(",", "-", age_group)
+  str_extract(age_group, "[0-9]+-[0-9]+")
+}
 
 
 

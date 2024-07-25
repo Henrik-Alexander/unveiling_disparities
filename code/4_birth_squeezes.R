@@ -11,6 +11,7 @@ library(tidyverse)
 library(readxl)
 library(HMDHFDplus)
 library(patchwork)
+library(stargazer)
 
 # Load the graphics
 source("functions/Graphics.R")
@@ -163,7 +164,7 @@ stargazer(distr_tfr_ratio, summary = F)
 
 # Estimate the diciles for the country-level data
 country_fert <- fert[fert$data != "Subnational Fertility Data", ]
-review_threshold <- quantile(country_fert$tfr_ratio, probs = c(0.1, 0.9))
+review_threshold <- round(quantile(country_fert$tfr_ratio, probs = c(0.1, 0.9)), 3)
 fert$review_approach <- factor(ifelse(fert$tfr_ratio < review_threshold[1] | fert$tfr_ratio > review_threshold[2], 1, 0), 
 labels = c("no squeeze", "birth squeeze"))
 
@@ -174,10 +175,11 @@ labels = c("no squeeze", "birth squeeze"))
 r <- 1
 
 # Create the grid
-stable_pop_df <- expand.grid(age_diff = seq(0, 1, by = 0.2),
-                             pop_diff = seq(0.9, 1.1, by = 0.1),
-                             srb = 1 / seq(1, 1.08, by = 0.01))
-stable_pop_df$tfr_ratio <- with(stable_pop_df, srb * pop_diff * exp(age_diff))
+stable_pop_df <- expand.grid(age_diff = seq(2, 4, by = 0.2),
+                             pop_diff = seq(0.915, 1.085, by = 0.005),
+                             srb = seq(1, 1.08, by = 0.01),
+                             r = seq(-0.05, 0.05, by = 0.05))
+stable_pop_df$tfr_ratio <- with(stable_pop_df, 1/srb * pop_diff * exp(r*(age_diff)))
 stable_pop_th <- quantile(stable_pop_df$tfr_ratio, probs = c(0.1, 0.9))
 
 # Create the birth squeeze variable
@@ -185,8 +187,28 @@ fert$stable_pop_approach <- factor(ifelse(fert$tfr_ratio < stable_pop_th[1] | fe
                                labels = c("no squeeze", "birth squeeze"))
 
 
+# Function to obatin the range of TFR values
+obtain_range <- function(variable = "srb", data = stable_pop_df){
+  tmp_range <- range(data[[variable]])
+  tmp <- data[data[[variable]] == tmp_range[1] | data[[variable]] == tmp_range[2], ]
+  tapply(tmp$tfr_ratio, tmp[[variable]], function(x) round(range(x), 2))
+}
+
+
+# Create the range
+map(c("srb", "pop_diff", "age_diff", "r"), obtain_range)
+
 ### 5. Impact approach -----------------
 
+# Set the thresholds
+impact_threshold_m <- c("lower"=0.552, "upper"=1.102)
+impact_threshold_f <- c("lower"=0.924, "upper"=0.995)
+
+# Identify the birth squeezes
+fert$impact_approach_m <- factor(ifelse(fert$tfr_ratio < impact_threshold_m["lower"] | fert$tfr_ratio > impact_threshold_m["upper"], 1, 0), 
+                               labels = c("no squeeze", "birth squeeze"))
+fert$impact_approach_f <- factor(ifelse(fert$tfr_ratio < impact_threshold_f["lower"] | fert$tfr_ratio > impact_threshold_f["upper"], 1, 0), 
+                                 labels = c("no squeeze", "birth squeeze"))
 
 #### Include the results in a plot --------
 
@@ -223,9 +245,7 @@ files <- files[str_detect(files, "asfr")]
 files <- files[!str_detect(files, "nat")]
 asfrs <- lapply(files, rda2list)
 
-
 ### Plot the results -----------------------------------
-
 
 # Plot the predictions
 plot_birth_squeeze <- function(data = fert, approach = naive_approach, label = "Naive approach") {
@@ -236,23 +256,25 @@ plot_birth_squeeze <- function(data = fert, approach = naive_approach, label = "
     ggtitle(label) +
     scale_colour_viridis_d(option = "D", name = "") +
     scale_shape_discrete(name = "", solid = T) +
-    scale_x_continuous("TFR female", expand = c(0, 0), limits = c(0, 8)) +
-    scale_y_continuous("TFR male", expand = c(0, 0), limits = c(0, 8)) + 
+    scale_x_continuous("TFR female", expand = c(0, 0), limits = c(0, 8), breaks = 1:8)  +
+    scale_y_continuous("TFR male", expand = c(0, 0), limits = c(0, 8), breaks = 1:8) + 
     guides(colour = guide_legend(override.aes = list(alpha = 1, size = 3))) 
     
   return(print(p))
   }
 
-###
+# Create the different plots
 naive <- plot_birth_squeeze()
 empiric <- plot_birth_squeeze(approach = posterior_predict, label = "Empiric approach")
 review <- plot_birth_squeeze(approach = review_approach, label = "Review approach")
 stable <- plot_birth_squeeze(approach = stable_pop_approach, label = "Stable population approach")
+impact_f <- plot_birth_squeeze(approach = impact_approach_m, label = "Impact approach (male)")
+impact_m <- plot_birth_squeeze(approach = impact_approach_f, label = "Impact approach (female)")
 
-# Assembel the plot
-(naive + review) / (empiric + stable) +
+# Assemble the plot
+(naive + review) / (empiric + stable) / (impact_f + impact_m) +
   plot_layout(guides = "collect")
-ggsave(last_plot(), filename = "figures/birth_squeezes_panel.pdf", height = 15, width = 20, unit = "cm")
+ggsave(last_plot(), filename = "figures/birth_squeezes_panel.pdf", height = 20, width = 10, unit = "cm")
 
 
 naive <- fert |> 

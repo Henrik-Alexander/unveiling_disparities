@@ -31,7 +31,10 @@ load("data/asfr_deu.Rda")
 calc_tfr <- function(births, exposure) sum(births/exposure)
 
 # Save the figures
-figs_sim <- function(plot, filename, height = 20, width = 25) ggsave(plot, filename = paste0("figures/sim_", filename, ".pdf"), height = height, width = width, unit = "cm")
+figs_sim <- function(plot, filename, height = 20, width = 25) {
+  ggsave(plot, filename = paste0("figures/sim_", filename, ".pdf"),
+         height = height, width = width, unit = "cm")
+}
 
 ### Wrangling ---------------------------------------
 

@@ -37,11 +37,11 @@ harmonize_country_srb <- function(country_names) {
 
 # Plot the impact of one determinant on tfr approximation
 plot_tfr_ratio <- function(det, label, data = stable_pop) {
-  p <- ggplot(data, aes_string(x=det, y="tfr_ratio_stable_pop", colour="Country")) + 
+  p <- ggplot(data, aes_string(x=det, y="tfr_ratio_stable_pop", fill="Country")) + 
     geom_hline(yintercept = 1) +
-    geom_point() +
+    geom_point(shape = 21, colour = "white") +
     scale_y_continuous("TFR ratio") +
-    scale_colour_viridis_d(name = "") +
+    scale_fill_viridis_d(name = "") +
     theme(axis.title.x = element_text(size = 8),
           axis.title.y = element_text(size = 8))
   if (is.numeric(data[[det]])){
@@ -104,7 +104,7 @@ timing <- inner_join(timing, meta_hfd, by = c("Code"="CNTRY"))
 timing <- timing |> select(-MAB40) |> rename(mac = MAB)
 
 # Load the population growth rates log(p1 / p0)
-growth_rates <- read.csv(list.files("U:/data/global/world_population_prospects", full.names=T))
+growth_rates <- read.csv(list.files("U:/data/global/wpp/data", full.names=T))
 growth_rates <- growth_rates[, c("Time", "Location", "Value")]
 names(growth_rates) <- c("year", "country", "r")
 growth_rates$country <- harmonize_country_srb(growth_rates$country)

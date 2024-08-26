@@ -29,7 +29,8 @@ fert <- fert[!is.na(fert$tfr_female) & !is.na(fert$tfr_male), ]
 # Load the schoumaker data:
 # Data accessed from: https://perso.uclouvain.be/bruno.schoumaker/data/
 path_global <- "U:/data/global/"
-sd <- read_xlsx(paste0(path_global, "schoumaker_male/A. Estimates of male and female fertility.xlsx"), sheet = 1)
+sd <- read_xlsx(paste0(path_global, "schoumaker_male/A. Estimates of male and female fertility.xlsx"),
+                sheet = 1)
 sd <- janitor::clean_names(sd)
 sd <- sd[, c("country_name", "female_tfr_shown_on_figures", "male_tfr_shown_on_figures")]
 names(sd) <- c("country", "tfr_female", "tfr_male")
@@ -174,13 +175,21 @@ labels = c("no squeeze", "birth squeeze"))
 # Set the growth rate
 r <- 1
 
-# Create the grid
-stable_pop_df <- expand.grid(age_diff = seq(2, 4, by = 0.2),
-                             pop_diff = seq(0.915, 1.085, by = 0.005),
-                             srb = seq(1, 1.08, by = 0.01),
-                             r = seq(-0.05, 0.05, by = 0.05))
-stable_pop_df$tfr_ratio <- with(stable_pop_df, 1/srb * pop_diff * exp(r*(age_diff)))
-stable_pop_th <- quantile(stable_pop_df$tfr_ratio, probs = c(0.1, 0.9))
+# Create data for the normal range
+stable_pop_normal <-  expand.grid(age_diff = seq(2, 4, by = 0.2),
+                                  pop_diff = seq(0.915, 1.085, by = 0.005),
+                                  srb = seq(1.03, 1.08, by = 0.01),
+                                  r = seq(-0.035, 0.01, by = 0.05))
+stable_pop_normal$tfr_ratio <- with(stable_pop_normal, 1/srb * pop_diff * exp(r*(age_diff)))
+hist(stable_pop_normal$tfr_ratio)
+
+# Create data for the extreme range
+stable_pop_normal <-  expand.grid(age_diff = seq(2, 4, by = 0.2),
+                                  pop_diff = seq(0.915, 1.085, by = 0.005),
+                                  srb = seq(min(srb$srb), max(srb$srb), by = 0.01),
+                                  r = seq(-0.05, 0.05, by = 0.05))
+stable_pop_normal$tfr_ratio <- with(stable_pop_df, 1/srb * pop_diff * exp(r*(age_diff)))
+
 
 # Create the birth squeeze variable
 fert$stable_pop_approach <- factor(ifelse(fert$tfr_ratio < stable_pop_th[1] | fert$tfr_ratio > stable_pop_th[2], 1, 0), 
@@ -209,6 +218,25 @@ fert$impact_approach_m <- factor(ifelse(fert$tfr_ratio < impact_threshold_m["low
                                labels = c("no squeeze", "birth squeeze"))
 fert$impact_approach_f <- factor(ifelse(fert$tfr_ratio < impact_threshold_f["lower"] | fert$tfr_ratio > impact_threshold_f["upper"], 1, 0), 
                                  labels = c("no squeeze", "birth squeeze"))
+
+
+# Create the formal
+impact_approach <- function(mu=0.05, alpha=-1.1363211, beta=0.3472586, r=1) {
+  if (abs(mu) > 1) warning("Childlessness cannot be lower than 0!")
+  # Subfunctions
+  estimate_l <- function(alpha, beta, r) {
+    exp(alpha + beta * r)
+  }
+  # Estimate parameters
+  l <- estimate_l(alpha, beta, r)
+  # Estimate the result
+  den <- log((-l-mu*l-mu)/(mu-1+mu*l)) - alpha - beta * r
+  return(den / beta)
+}
+
+# Estimate the result
+sapply(c(0.01, 0.05), impact_approach)
+
 
 #### Include the results in a plot --------
 
@@ -274,7 +302,7 @@ impact_m <- plot_birth_squeeze(approach = impact_approach_f, label = "Impact app
 # Assemble the plot
 (naive + review) / (empiric + stable) / (impact_f + impact_m) +
   plot_layout(guides = "collect")
-ggsave(last_plot(), filename = "figures/birth_squeezes_panel.pdf", height = 20, width = 10, unit = "cm")
+ggsave(last_plot(), filename = "figures/birth_squeezes_panel.pdf", height = 20, width = 15, unit = "cm")
 
 
 naive <- fert |> 

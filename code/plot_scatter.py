@@ -267,10 +267,10 @@ def plot_tfr_national(country, data = fert_nat, number=0):
     
 
 # Iterate over the different panels
-fig, axs = plt.subplots(4, 2, figsize = [13, 20])
+fig, axs = plt.subplots(4, 2, figsize = [25, 13])
 for i in range(len(unique_countries)):
     country = unique_countries[i]
-    col, row = create_row_col(i)
+    row, col = create_row_col(i)
     print(country, ":", )
     # Create the plots
     plot_tfr_national(country = country, number = i)

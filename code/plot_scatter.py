@@ -13,11 +13,9 @@ plt.rcParams["legend.markerscale"] = 2
 # Set seed
 np.random.seed(1234)
 
-# Load the data ----------------------------
-
+# Load the data
 df = pd.read_csv("../data/fert_data_subnational.csv")
 fert_nat = pd.read_csv("../data/fert_data_national.csv")
-
 
 # Functions  ----------------------------
 
@@ -91,50 +89,6 @@ def sort_legend(ax):
     handles, labels = ax.get_legend_handles_labels()
     labels, handles = zip(*sorted(zip(labels, handles), key = lambda t: t[0]))
     ax.legend(handles, labels)
-
-
-#%% Plot the MACs ---------------------------
-
-# Select the important columns
-macs = df[["mac_male", "mac_female", "year", "region", "country"]]
-macs = macs.dropna()
-
-# Get the minimum and maximum value
-min = math.floor(macs.mac_female.min() * (1 - 0.005))
-max = math.ceil(macs.mac_male.max() * (1 + 0.005))
-unique_countries = macs.country.unique()
-
-# Create the colour vector
-cols = [col_dict[country] for country in macs["country"]]
-
-
-# Create the plot ---------------------------
-
-fig, ax = plt.subplots(figsize = (10, 10))
-ax.plot([0, 1], [0, 1], transform = ax.transAxes, c = "#000000", zorder = 0)
-for country in unique_countries:
-    tmp = macs[macs["country"] == country]
-    ax.scatter(tmp["mac_female"], tmp["mac_male"], c = col_dict[country], marker = marker_dict[country],  
-            edgecolor = "white", linewidths = 0.1, label = country, s = 60)
-
-# Insert the subplots
-region_high = [31, 32.3, 34.4, 35.7]
-box_topright = [0.05, 0.7, 0.25, 0.25]
-inset_subplot(box = box_topright, region = region_high, data = macs, n = 3, size = 70, fontsize = 20)
-region_low = [26, 28, 30, 32]
-box_bottomright = [0.3, 0.05, 0.25, 0.25]
-inset_subplot(box = box_bottomright, region = region_low, data = macs, n = 3, size = 70, fontsize = 20)
-
-# Adjust the plot characteristics
-ax.axis([min, max, min, max])
-sort_legend(ax)
-ax.set_xlabel("MAC$_{Female}$")
-ax.set_ylabel("MAC$_{Male}$")
-plt.xticks(ticks = np.arange(24, 37, step = 1))
-plt.yticks(ticks = np.arange(24, 37, step = 1))
-plt.grid(visible = True, axis = "both", which = "major", linestyle = ":", linewidth = 0.3, zorder = 0, color = "grey")
-plt.savefig("../figures/mac_male_female_zoom.pdf", format = "pdf", bbox_inches = "tight")
-plt.show()
 
 #%% Plot the TFRs -----------------------
 
@@ -234,13 +188,11 @@ for country in unique_countries:
 
 #%% Create country specific panels -------------------------
 
-
 # Function to create row and column values
 def create_row_col(number):
     col = number % 2
     row = number // 2
     return col, row
-
 
 def plot_tfr_time(country, data = df, alpha = 0.6, number=0):
     tmp = data[data["country"] == country]
@@ -251,6 +203,14 @@ def plot_tfr_time(country, data = df, alpha = 0.6, number=0):
         axs[row, col].plot(reg_data["year"], reg_data["tfr_ratio"],
                     color = col_dict[country],
                     zorder = 50, alpha = alpha)
+    #axs[row, col].set_ylabel(r"$\frac{TFR_{male}}{TFR_{female}}$")
+    #axs[row, col].set_xlabel("Year")
+    axs[row, col]. margins(x=0)
+    axs[row, col].grid(visible = True, axis = "both", which = "major", linestyle = ":", linewidth = 0.3, zorder = 0, color = "grey")
+    if country == "Spain":
+        axs[row, col].xaxis.set_ticks(np.arange(2000, 2021, 5))
+    if country == "France":
+        axs[row, col].xaxis.set_ticks(np.arange(1998, 2009, 2))
         
 # Plot the country average
 def plot_tfr_national(country, data = fert_nat, number=0):
@@ -263,24 +223,21 @@ def plot_tfr_national(country, data = fert_nat, number=0):
         color = col_dict[country], marker = marker_dict[country],
                      edgecolor = "white", linewidths = 0.5, s = 80,
                      zorder = 80)
-    
-    
 
 # Iterate over the different panels
-fig, axs = plt.subplots(4, 2, figsize = [25, 13])
+fig, axs = plt.subplots(4, 2, figsize = [13, 20])
 for i in range(len(unique_countries)):
     country = unique_countries[i]
-    row, col = create_row_col(i)
+    col, row = create_row_col(i)
     print(country, ":", )
     # Create the plots
     plot_tfr_national(country = country, number = i)
     plot_tfr_time(country = country, number = i)
     axs[row, col].set_ylim([0.7, 1.35])
     axs[row, col].title.set_text(country)
+
 plt.savefig("../figures/tfr_ratio_panel.pdf", format = "pdf", bbox_inches = "tight")
 plt.show()
-
-
 
 # Plot columbia -------------------------------------------
 

@@ -106,6 +106,7 @@ plot_birth_squeeze <- function(data = fert, approach = expert_based_approach, la
     ggtitle(label) +
     scale_colour_viridis_d(option = "D", name = "") +
     scale_shape_discrete(name = "", solid = T) +
+    ylab(NULL) +
     scale_x_continuous("TFR female", expand = c(0, 0), limits = c(0, 8), breaks = 1:8)  +
     scale_y_continuous("TFR male", expand = c(0, 0), limits = c(0, 8), breaks = 1:8) + 
     guides(colour = guide_legend(override.aes = list(alpha = 1, size = 3))) 
@@ -140,15 +141,17 @@ plot_country_shares <- function(variable = expert_based_approach, label = "Exper
     scale_y_continuous("% Share", expand = c(0, 0)) +
     scale_x_discrete(expand = c(0, 0)) +
     scale_fill_viridis_d(name = "") + 
-    ggtitle(label)
-  
+    ggtitle(label) +
+    theme(
+      axis.title.y = element_blank()
+    )
   
 }
 
 # Create plots
 e_country_shares <- plot_country_shares()
 d_country_shares <- plot_country_shares(data_based_approach, "Data-based approach")
-s_country_shares <- plot_country_shares(stable_pop_approach, "Data-based approach")
+s_country_shares <- plot_country_shares(stable_pop_approach, "Stable-population approach")
 o_country_shares <- plot_country_shares(outcome_based_approach, "Outcome-based approach")
 e_country_shares + d_country_shares + s_country_shares + o_country_shares +
   plot_layout(guides = "collect", ncol = 2)

@@ -19,64 +19,11 @@ source("functions/Graphics.R")
 # Load the fertility data
 load("data/fert_data_subnational.Rda")
 
+# Load the national fertiltiy data
+load("data/male_national_fertility.Rda")
+
 # Remove observations without male or female TFR
 fert <- fert[!is.na(fert$tfr_female) & !is.na(fert$tfr_male), ]
-
-### Load the Schoumaker and Dudel data -----------------
-
-# Set the global path to the data directory
-path_global <- "U:/data/global/"
-
-# Load the schoumaker data:
-# Data accessed from: https://perso.uclouvain.be/bruno.schoumaker/data/
-schoumaker_path <- "schoumaker_male/A. Estimates of male and female fertility.xlsx"
-sd <- read_xlsx(paste0(path_global, schoumaker_path), sheet = 1)
-sd <- janitor::clean_names(sd)
-mac_schoumaker <- sd[, c("country_name", "mean_age_at_childbearing_shown_on_figures", "mean_age_at_fatherhood_shown_on_figures")]
-sd <- sd[, c("country_name", "female_tfr_shown_on_figures", "male_tfr_shown_on_figures")]
-names(sd) <- c("country", "tfr_female", "tfr_male")
-sd$data <- "Schoumaker's fertility estimates"
-sd[, c("tfr_male", "tfr_female")] <- apply(sd[, c("tfr_male", "tfr_female")], 2, as.numeric)
-sd <- sd[!is.na(sd$tfr_female) & !is.na(sd$tfr_male), ]
-mac_schoumaker[, 2:3] <- apply(mac_schoumaker[, 2:3], 2, as.numeric)
-
-# Load the male-fertility database:
-# Data accessed from: https://www.fertilitydata.org/Home/Index
-hfc_files <- list.files(paste0(path_global, "male_fertility_database"), full.names = T)
-hfc <- lapply(hfc_files, read.delim, sep = ",")
-hfc <- bind_rows(hfc)
-hfc$CNTRY <- gsub(" +", "", hfc$Country)
-save(hfc, file = "data/asfr_male_dudel21.Rda")
-hfc <- aggregate(ASFR ~ CNTRY + Year1, data = hfc, FUN = sum)
-names(hfc) <- c("CNTRY", "Year", "tfr_male") 
-
-# Load the female fertility data from the human fertility database
-hfd <- read_xlsx(paste0(path_global, "/human_fertility_database/TFR.xlsx"), sheet = 2, skip = 2)
-hfd <- pivot_longer(hfd, cols = !PERIOD, names_to = "CNTRY", values_to = "tfr_female")
-
-# Get the meta information on countries and country codes in HFD
-meta_hfd <- HMDHFDplus::getHFDcountries()
-meta_hfd <- meta_hfd[, c("Country", "CNTRY")]
-
-# Combine the data
-hfc <- full_join(hfc, hfd, by = c("Year" = "PERIOD", "CNTRY"))
-names(hfc) <- c("CNTRY", "year", "tfr_male", "tfr_female")
-hfc <- inner_join(hfc, meta_hfd, by = "CNTRY")
-names(hfc) <- tolower(names(hfc))
-hfc$data <- "Human Fertility Collection"
-hfc <- hfc[!is.na(hfc$tfr_female) & !is.na(hfc$tfr_male), ]
-
-### Load the Schoen(1985) data:
-rsd <- read.csv("data/schoen_birthsqueeze_1985.csv")
-rsd$country <- gsub("^[0-I]+. ", "", rsd[, 1])
-rsd$tfr_ratio <- rsd$tfr_male / rsd$tfr_female
-rsd$data <- "Robert Schoen, 1985" 
-
-# Combine the Schoumaker's and Christian's data
-ccd <- bind_rows(hfc, sd, rsd)
-
-# Estimate the outcome: TFR ratio
-ccd$tfr_ratio <- ccd$tfr_male / ccd$tfr_female
 
 ## Combine the data -------------------------
 
@@ -93,10 +40,10 @@ fert <- fert[!is.na(fert$tfr_ratio), ]
 fert$U <- with(fert, (tfr_male-tfr_female)/(0.5*tfr_male+0.5*tfr_female))
 
 # 1. Expert-based approach
-source("code/expert_based_approach.R")
+source("code/thresholds/expert_based_approach.R")
 
 # 2. Data-based approach
-source("code/data_based_approach.R")
+source("code/thresholds/data_based_approach.R")
 
 # 3. Stable population approach
 source("code/thresholds/stable_population_approach.R")

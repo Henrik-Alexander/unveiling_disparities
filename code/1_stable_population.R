@@ -35,7 +35,7 @@ harmonize_country_srb <- function(country_names) {
   return(country_names)
 }
 
-# Plot the impact of one determinant on tfr approximation
+# Plot the impact of one determinant on TFR approximation
 plot_tfr_ratio <- function(det, label, data = stable_pop) {
   p <- ggplot(data, aes_string(x=det, y="tfr_ratio_stable_pop", fill="Country")) + 
     geom_hline(yintercept = 1) +
@@ -90,6 +90,7 @@ meta_hfd <- meta_hfd[, c("Country", "CNTRY")]
 
 # Load the mean age of childbearing
 mac <- read.table("U:/data/global/human_fertility_database/mabRR.txt", skip = 2, header = T)
+maf <- split(hfc, list(hfc$CNTRY, hfc$Year1))
 maf <- hfc |> group_by(CNTRY, Year1) |> summarise(maf = estimate_mac(Age, ASFR), .groups = "drop")
 
 # Clean the sex ratio at births

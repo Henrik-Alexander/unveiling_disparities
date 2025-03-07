@@ -6,7 +6,7 @@
 ########################################
 
 # Clean the environment
-rm(list = ls())
+rm(list = ls()); gc(TRUE)
 
 # Load the packages
 library(data.table)
@@ -14,25 +14,31 @@ library(tidyverse)
 library(janitor)
 library(stargazer)
 library(patchwork)
-library(ggrepel)
-library(ggExtra)
-library(ppcor)
+#library(ggrepel)
+#library(ggExtra)
+#library(ppcor)
 library(reshape2)
-library(broom)
-library(ineq)
-library(latex2exp)
-library(lme4)
+#library(broom)
+#library(ineq)
+#library(latex2exp)
+#library(lme4)
 library(texreg)
+library(readxl)
 
 # Load the functions
 source("Functions/Functions.R")
 source("Functions/Graphics.R")
 
-### Prepare the fertility data ===================================
+# 1. Prepare the fertility data ===================================
+
+### Finnish data -----------------------------------------
 
 # Preperate the Finnish data
 fert_fin <- read.csv("U:/data/fin/birth_registers/tfr_ratios_maakunta.csv",
                      encoding = "latin1")
+
+# Remove the X column
+fert_fin <- fert_fin[, names(fert_fin) != "X"]
 
 # Estimate the regional TFRS
 fert_fin <- fert_fin |> 
@@ -72,19 +78,21 @@ tfr_aus_nat$country <- fert_aus$country <- "Australia"
 
 ### Spanish data -------------------------------
 
-# Load the spanish data
-load("data/tfr_esp_nat.Rda")
-load("data/tfr_esp.Rda")
 
-# Clean the regional data
-fert_esp_nat <- tfr_esp_nat |>
-  mutate(country = "Spain", tfr_ratio = tfr_male / tfr_female)
+# Clean the national data
+load("U:/data/esp/fertility_rates/tfr_esp_nat.Rda")
+fert_esp_nat <- tfr_esp_nat
+fert_esp_nat$tfr_ratio <- with(fert_esp_nat, tfr_male / tfr_female)
+fert_esp_nat <- fert_esp_nat[, c("year", "tfr_female", "tfr_male", "tfr_ratio")]
 
 # Create regional tfr
-fert_esp <- tfr_esp_reg |> 
-  rename(region = Region) |> 
-  mutate(tfr_ratio = tfr_male / tfr_female,
-         country = "Spain")
+load("U:/data/esp/fertility_rates/tfr_esp.Rda")
+fert_esp <- tfr_esp_reg[, c("region", "year", "tfr_female", "tfr_male", "tfr_ratio")]
+
+# Create the country column
+fert_esp$country <- fert_esp_nat$country <- "Spain"
+rm(list = ls(pattern = "tfr_esp"))
+
 
 ### French data -----------------------------
 
@@ -97,9 +105,6 @@ fert_fra <- asfr_fra |>
   summarise(tfr_female = sum(asfr_female, na.rm = TRUE),
             tfr_male   = sum(asfr_male, na.rm = TRUE),
             tfr_ratio  = tfr_male / tfr_female,
-            mac_female = sum(asfr_female * age, na.rm = T) / sum(asfr_female, na.rm = TRUE),
-            mac_male = sum(asfr_male * age, na.rm = T) / sum(asfr_male, na.rm = TRUE),
-            mac_diff = mac_male - mac_female,
             country = "France",
             .groups = "drop")
 
@@ -114,7 +119,7 @@ fert_fra_nat <- asfr_fra |>
             tfr_ratio = tfr_male / tfr_female,
             country = "France",
             .groups = "drop")
-
+rm(asfr_fra)
 
 ### Mexican data -----------------------------
 
@@ -153,8 +158,6 @@ fert_us <- asfr_us |>
   group_by(state, year) |> 
   summarise(tfr_male = sum(asfr_male),
             tfr_female = sum(asfr_female),
-            mac_male = sum(asfr_male * age) / sum(asfr_male),
-            mac_female = sum(asfr_female * age) / sum(asfr_female),
             country = "United States",
             .groups = "drop") |> 
   mutate(tfr_ratio = tfr_male / tfr_female) |> 
@@ -171,6 +174,7 @@ fert_us_nat <- asfr_us |>
             tfr_ratio = tfr_male / tfr_female,
             country = "United States",
             .groups = "drop") 
+rm(asfr_us)
 
 ### German data ---------------------------
 
@@ -225,6 +229,9 @@ fert_nat <- bind_rows(fert_mex_nat, fert_us_nat, tfr_aus_nat, fert_deu_nat,
 
 # Bind the data
 fert <- bind_rows(fert_mex, fert_us, fert_aus, fert_deu, fert_fra, fert_fin, fert_esp, fert_col)
+
+# Remove missing observations
+fert <- na.omit(fert)
 
 # Save the data
 save(fert, file = "data/fert_data_subnational.Rda")

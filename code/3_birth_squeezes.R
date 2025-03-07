@@ -51,7 +51,6 @@ source("code/thresholds/stable_population_approach.R")
 ### 4. Impact approach
 source("code/thresholds/impact_approach.R")
 
-
 #### Include the results in a plot --------
 
 # Estimate the population squeeze for one region-year observation
@@ -95,6 +94,22 @@ files <- files[str_detect(files, "asfr")]
 files <- files[!str_detect(files, "nat")]
 asfrs <- lapply(files, rda2list)
 
+
+### Country shares -------------------------------------
+
+# Create subnational fertility data
+sub_fert <- subset(fert, data == "Subnational Fertility Data")
+
+# Print the total number and shares by country
+country_shares <- function(dummies, countries = sub_fert$country) {
+  data.frame("total values" = table(countries, dummies)[, "birth squeeze"],
+       "country shares" = round(100 * prop.table(table(countries, dummies), margin = 1), 2)[, "birth squeeze"])
+}
+
+# Country shares
+country_shares <- lapply(sub_fert[, str_detect(names(sub_fert), "approach$")], country_shares)
+
+
 ### Plot the results -----------------------------------
 
 # Plot the predictions
@@ -123,7 +138,8 @@ impact <- plot_birth_squeeze(approach = outcome_based_approach, label = "Outcome
 # Assemble the plot
 (expert + data_based) / (stable + impact) +
   plot_layout(guides = "collect")
-ggsave(last_plot(), filename = "figures/birth_squeezes_panel.pdf", height = 20, width = 15, unit = "cm")
+ggsave(last_plot(), filename = "figures/birth_squeezes_panel.pdf",
+       height = 20, width = 15, unit = "cm")
 
 # Function plot by category
 plot_country_shares <- function(variable = expert_based_approach, label = "Expert-based approach", data = fert) {
@@ -155,7 +171,8 @@ s_country_shares <- plot_country_shares(stable_pop_approach, "Stable-population 
 o_country_shares <- plot_country_shares(outcome_based_approach, "Outcome-based approach")
 e_country_shares + d_country_shares + s_country_shares + o_country_shares +
   plot_layout(guides = "collect", ncol = 2)
-ggsave(last_plot(), filename = "figures/share_birth_squeeze.pdf")
+ggsave(last_plot(), filename = "figures/share_birth_squeeze.pdf",
+       height = 17, width = 17, unit = "cm")
 
 #  Plot the distribution of the different TFR ratios 
 fert |> 

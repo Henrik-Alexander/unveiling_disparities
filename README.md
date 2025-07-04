@@ -2,7 +2,7 @@ April 2023
 
 # Subnational Birth Squeezes
 
-This folder contains the code to fully reproduce the result of the paper **Subnational Birth Squeezes. A cross-country comparison**. All code on which this analysis is based was written in the [**R**](https://www.r-project.org/) statistical programming language.
+This folder contains the code to fully reproduce the result of the paper **Subnational Birth Squeezes. Male-Female TFR Differences Across Eight High- and Middle-Income Countries over Time**. All code on which this analysis is based was written in the [**R**](https://www.r-project.org/) statistical programming language.
 
 ## Software and hardware
 

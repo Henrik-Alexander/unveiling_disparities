@@ -1,0 +1,28 @@
+#
+*app
+
+# File
+account_information.R
+
+# Directories
+data/
+code/old
+raw/old
+figures/
+results/
+master/
+
+# File types
+*.tex
+*.pdf
+*raw
+*handbooks
+*pdf
+*tex
+*.Rda
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.csv
+.xlsx

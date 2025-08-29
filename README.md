@@ -33,6 +33,8 @@ This work would not have been possible with the scientific and programming contr
 -   [`bea.R`](https://cran.r-project.org/web/packages/bea.R/bea.R.pdf) by Andrea Batch
 
 ## Reproduction Procedures
+The individual-level data can accessed from the sources described in Table 1 in the paper.
+
 
 ## Data structure
 

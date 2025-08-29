@@ -1,5 +1,5 @@
 ########################################
-# Purpose: Regression modelling        #
+# Purpose: Estimate threshholds        #
 # Author: Henrik-Alexander schubert    #
 # E-mail: schubert@demogr.mpg.de       #
 # Date: 25.09.2023                     #
@@ -20,7 +20,7 @@ source("functions/Graphics.R")
 load("data/fert_data_subnational.Rda")
 
 # Load the national fertiltiy data
-load("data/male_national_fertility.Rda")
+ccd <- read.csv("raw/country_male_fertility.csv")
 
 # Remove observations without male or female TFR
 fert <- fert[!is.na(fert$tfr_female) & !is.na(fert$tfr_male), ]
@@ -32,6 +32,9 @@ fert$data <- "Subnational Fertility Data"
 
 # Combine the data
 fert <- bind_rows(fert, ccd)
+
+# Remove unknown regions in spain
+fert <- fert[fert$region != "", ]
 
 # Filter missing data
 fert <- fert[!is.na(fert$tfr_ratio), ]
@@ -118,7 +121,7 @@ plot_birth_squeeze <- function(data = fert, approach = expert_based_approach, la
     geom_abline(intercept = 0, slope = 1) +
     geom_point(alpha = .5) +
     ggtitle(label) +
-    scale_colour_viridis_d(option = "D", name = "") +
+    scale_colour_manual(name = "", values=c(MPIDRpurple, MPIDRgreen)) +
     scale_shape_discrete(name = "", solid = T) +
     ylab(NULL) +
     scale_x_continuous("TFR female", expand = c(0, 0), limits = c(0, 8), breaks = 1:8)  +
@@ -165,7 +168,7 @@ plot_country_shares <- function(variable = expert_based_approach, label = "Exper
     coord_flip() +
     scale_y_continuous("% Share", expand = c(0, 0)) +
     scale_x_discrete(expand = c(0, 0)) +
-    scale_fill_viridis_d(name = "") + 
+    scale_fill_manual(name = "", values=c(MPIDRpurple, MPIDRgreen)) + 
     ggtitle(label) +
     theme(
       axis.title.y = element_blank()
@@ -201,24 +204,15 @@ fert |>
   facet_wrap(~ data, scales = "free_y") +
   scale_y_continuous("Number of region-year observations", expand = c(0, 0)) +
   scale_x_continuous("TFR ratio", expand = c(0, 0), n.breaks = 10, trans = "log") +
-  scale_fill_viridis_d() +
+  scale_fill_manual(values=c(MPIDRpurple, MPIDRgreen)) +
   guides(fill = "none") +
   theme(
     strip.text = element_text(size = 10)
   )
 ggsave(last_plot(), filename = "figures/distribution_tfr_datasets.pdf", height = 15, width = 20, unit = "cm")
 
-# Plot the data
-ggplot(fert, aes(x = tfr_female, y = tfr_male, colour = data, shape = data)) + 
-  geom_abline(intercept = 0, slope = 1) +
-  geom_point(alpha = .5) +
-  scale_x_continuous("TFR female", limits = c(0, 10), n.breaks = 10, expand = c(0, 0)) +
-  scale_y_continuous("TFR male", limits = c(0, 10), n.breaks = 10, expand = c(0, 0)) +
-  theme(legend.position = c(0.65, 0.2)) +
-  scale_colour_viridis_d(name = "Data source:") + 
-  scale_shape(name = "Data source:") +
-  guides(colour = guide_legend(override.aes = list(alpha = 1, size = 3)))
 
-ggsave(last_plot(), filename = "figures/data_sources.pdf", height = 15, width = 15, unit = "cm")
+# Save the data
+save(fert, file="data/birth_squeezes.Rda")
 
 ### END ################################################

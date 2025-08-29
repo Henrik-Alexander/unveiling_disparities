@@ -14,8 +14,9 @@ plt.rcParams["legend.markerscale"] = 2
 np.random.seed(1234)
 
 # Load the data
-df = pd.read_csv("../data/fert_data_subnational.csv")
-fert_nat = pd.read_csv("../data/fert_data_national.csv")
+df = pd.read_csv("../data/raw/fert_data_subnational.csv")
+fert_nat = pd.read_csv("../data/raw/fert_data_national.csv")
+
 
 # Functions  ----------------------------
 
@@ -44,7 +45,7 @@ marker_dict = {"Mexico": marker_palette[0],
             }
 
 # Function to plto the subplot
-def inset_subplot(box, region, data, variable = "mac", offset = 0.1, n = 10, size = 100, fontsize = 10):
+def inset_subplot(box, region, data, variable = "mac", offset = 0.1, n = 10, size = 100, fontsize = 8):
     if variable not in ["mac", "tfr"]:
         raise ValueError("Provide mac or tfr as variable.")
     # Create the variables
@@ -53,6 +54,7 @@ def inset_subplot(box, region, data, variable = "mac", offset = 0.1, n = 10, siz
 
     # Inset the subplot
     ax_inset = ax.inset_axes(box)
+    
     for country in unique_countries:
         tmp = data[(data["country"]==country)&(data[v_female]<region[1])&(data[v_male]<region[3])]
         ax_inset.scatter(tmp[v_female], tmp[v_male], c = col_dict[country], marker = marker_dict[country],
@@ -61,7 +63,12 @@ def inset_subplot(box, region, data, variable = "mac", offset = 0.1, n = 10, siz
 
     ax_inset.set_xlim(region[0], region[1])
     ax_inset.set_ylim(region[2], region[3])
-    ax_inset.grid(visible = True, axis = "both", which = "major", linestyle = ":", linewidth = 0.5, zorder = 0, color = "grey")
+    
+    # Create the grid and ticks
+    ax_inset.set_xticks(np.arange(math.floor(region[0]), math.ceil(region[1]), 1))
+    ax_inset.set_yticks(np.arange(math.floor(region[2]), math.ceil(region[3]), 1))
+    ax_inset.grid(visible = True, axis = "both", which = "major", linestyle = ":", linewidth = 1, zorder = 0, color = "grey")
+    
     # Connector settings
     ax.indicate_inset_zoom(ax_inset,
                         edgecolor = "black",
@@ -119,21 +126,21 @@ for country in unique_countries:
             edgecolor = "white", linewidths = 0.2, label = country, s=60, alpha = 0.8)
 
 # Insert the subplots
-region_low = [0.5, 1.1, 0.4, 1.1]
+region_low = [0.6, 1.4, 0.6, 1.4]
 box_bottomright = [0.05, 0.55, 0.35, 0.35]
 inset_subplot(box = box_bottomright, variable = "tfr", data = tfrs, region = region_low,
               n = 3, size = 100, fontsize = 20)
 
 # Adjust the plot characteristics
-ax.axis([min, max, min, max])
-ax.legend()
+#ax.axis([min, max, min, max])
 sort_legend(ax)
+ax.legend(loc="lower right")
 ax.set_xlabel("TFR$_{Female}$")
 ax.set_ylabel("TFR$_{Male}$")
 plt.xticks(ticks = np.arange(0, 11, step = 1))
 plt.yticks(ticks = np.arange(0, 11, step = 1))
 plt.grid(visible = True, axis = "both", which = "major", linestyle = ":", linewidth = 0.3, zorder = 0, color = "grey")
-plt.savefig("../figures/tfr_male_female_zoom.pdf", format = "pdf", bbox_inches = "tight")
+plt.savefig("../figures/tfr_male_female_zoom.svg", format = "svg", bbox_inches = "tight")
 plt.show()
 
 #%% Plot the tfr ratios over time ---------------------------------
@@ -173,7 +180,7 @@ ax.legend(loc = "upper center", ncol = 3,
           bbox_to_anchor=(0.5, 1))
 ax.set_ylabel(r"$\frac{TFR_{male}}{TFR_{female}}$")
 ax.set_xlabel("Year")
-plt.savefig("../figures/trend_tfr_ratio.pdf", format = "pdf", bbox_inches = "tight")
+plt.savefig("../figures/trend_tfr_ratio.svg", format = "svg", bbox_inches = "tight")
 plt.show()
         
 

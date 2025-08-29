@@ -8,6 +8,7 @@
 
 library(latex2exp)
 library(MetBrewer)
+library(tidyverse)
 library(patchwork)
 
 
@@ -318,7 +319,7 @@ names(asfr_mex_reg) <- str_replace(names(asfr_mex_reg), "exposure", "pop")
 regions <- c("District of Columbia", "Alaska", "New York")
 
 # Subset the state
-illustrate_birth_squeeze <- function(region, data=asfr_us, year=2004, aggregate=TRUE) {
+illustrate_birth_squeeze <- function(region, data=asfr_us, year=2004, aggregate=TRUE, rounding=3) {
   
   # Subset a state
   df <- data[data$year==year & data$region==region, ]
@@ -339,11 +340,10 @@ illustrate_birth_squeeze <- function(region, data=asfr_us, year=2004, aggregate=
   asfr_ratio <- max(df$asfr) / max(df$pop)
   
   # Estiamte the TFR ratio
-  tfr_ratio <- round(sum(df$asfr[df$sex=="male"]) / sum(df$asfr[df$sex=="female"]), 2)
+  tfr_ratio <- round(sum(df$asfr[df$sex=="male"]) / sum(df$asfr[df$sex=="female"]), rounding)
   max_pop <- round(max(df$pop) / 10000) * 12000
   
   # Plot the data
-  
   base_plot <- ggplot(df, aes(x=age, group=sex, colour=sex, fill=sex)) +
     geom_area(aes(y=asfr/asfr_ratio), alpha=0.3, positio=position_identity()) +
     geom_col(aes(y=pop, alpha="Population"), position=position_dodge()) +
@@ -356,30 +356,38 @@ illustrate_birth_squeeze <- function(region, data=asfr_us, year=2004, aggregate=
     scale_colour_manual("Sex:", values=c(MPIDRgreen, MPIDRpurple)) +
     scale_fill_manual("Sex:", values=c(MPIDRgreen, MPIDRpurple)) +
     scale_shape_manual("Age-specific fertility rate:", values=c(16, 17)) +
-    scale_linetype_manual("Age-specific fertility rate:", values=c("solid", "solid"))
+    scale_linetype_manual("Age-specific fertility rate:", values=c("solid", "solid")) 
   
   
   
   if (aggregate) {
-    p <- base_plot + scale_x_discrete("Age", expand=c(0, 0))
+    p <- base_plot +
+      scale_x_discrete("Age", expand=c(0, 0)) +
+      annotate(geom="text", x=6, y=0.85 * max(df$pop), label=TeX(paste0("$TFR_w=", round(sum(df$asfr[df$sex=="female"]), rounding), "$")), col=MPIDRgreen, family="serif", size=6) +
+      annotate(geom="text", x=6, y=0.9 * max(df$pop), label=TeX(paste0("$TFR_m=", round(sum(df$asfr[df$sex=="male"]), rounding), "$")), col=MPIDRpurple, family="serif", size=6) 
   } else {
-    p <- base_plot + scale_x_continuous("Age", expand = c(0, 0), n.breaks=10)
+    p <- base_plot + scale_x_continuous("Age", expand = c(0, 0), n.breaks=10) +
+      scale_x_discrete("Age", expand=c(0, 0)) +
+      annotate(geom="text", x=40, y=0.85 * max(df$pop), label=TeX(paste0("$TFR_w=", round(sum(df$asfr[df$sex=="female"]), rounding), "$")), col=MPIDRgreen, family="serif", size=6) +
+      annotate(geom="text", x=40, y=0.9 * max(df$pop), label=TeX(paste0("$TFR_m=", round(sum(df$asfr[df$sex=="male"]), rounding), "$")), col=MPIDRpurple, family="serif", size=6) 
   }
-  ggsave(plot=p, filename=paste0("figures/illustration_tfr_ratio_", state, ifelse(aggregate, "_aggregate", ""),year, ".pdf"),
+  ggsave(plot=p, filename=paste0("figures/illustration_tfr_ratio_", region, ifelse(aggregate, "_aggregate", ""),year, ".pdf"),
          height=15, width=22, unit="cm")
   
     return(p)
 
 }
 
-plots <- lapply(regions, illustrate_birth_squeeze)
-
 illustrate_birth_squeeze(region="Aguascalientes", data=asfr_mex_reg, year=2000)
 
 
+plots <- lapply(regions, illustrate_birth_squeeze)
 
 
-illustrate_birth_squeeze(region="Oaxaca", data=asfr_mex_reg, year=2021) + plots[[2]] +
+
+
+
+plots[[2]] + illustrate_birth_squeeze(region="Oaxaca", data=asfr_mex_reg, year=2021) +
   plot_layout(axis = "collect", guides = "collect") +
   plot_annotation(tag_levels = "A", tag_suffix = ")")
 ggsave(filename="figures/illustration_birthsqueeze_usa_joint.pdf", height=18, width=30, unit="cm")

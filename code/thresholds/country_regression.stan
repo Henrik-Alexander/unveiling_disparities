@@ -30,7 +30,7 @@ transformed parameters {
 // and standard deviation 'sigma'.
 model {
   // Likelihood
-  y ~ lognormal(mu, sigma);
+  y ~ normal(mu, sigma);
   
   // Priors
   alpha ~ normal(0, 2);

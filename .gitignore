@@ -3,10 +3,13 @@
 
 # File
 account_information.R
+functions/passwords.R
 
 # Directories
 data/
 code/old
+code/Columbia
+code/Australia
 raw/old
 figures/
 results/

@@ -247,9 +247,9 @@ path_global <- "U:/data/global/"
 schoumaker_path <- "schoumaker_male/A. Estimates of male and female fertility.xlsx"
 sd <- read_xlsx(paste0(path_global, schoumaker_path), sheet = 1)
 sd <- janitor::clean_names(sd)
-mac_schoumaker <- sd[, c("country_name", "mean_age_at_childbearing_shown_on_figures", "mean_age_at_fatherhood_shown_on_figures")]
-sd <- sd[, c("country_name", "female_tfr_shown_on_figures", "male_tfr_shown_on_figures")]
-names(sd) <- c("country", "tfr_female", "tfr_male")
+mac_schoumaker <- sd[, c("country_name", "mean_age_at_childbearing_shown_on_figures", "mean_age_at_fatherhood_shown_on_figures", "central_year")]
+sd <- sd[, c("country_name", "female_tfr_shown_on_figures", "male_tfr_shown_on_figures", "central_year")]
+names(sd) <- c("country", "tfr_female", "tfr_male", "year")
 sd$data <- "Schoumaker's fertility estimates"
 sd[, c("tfr_male", "tfr_female")] <- apply(sd[, c("tfr_male", "tfr_female")], 2, as.numeric)
 sd <- sd[!is.na(sd$tfr_female) & !is.na(sd$tfr_male), ]

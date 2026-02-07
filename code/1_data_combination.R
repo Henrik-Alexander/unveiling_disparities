@@ -22,12 +22,15 @@ library(readxl)
 source("Functions/Functions.R")
 source("Functions/Graphics.R")
 
+# Load the paths to the data files
+source("functions/paths.R")
+
 # 1. Prepare the fertility data ===================================
 
 ### Finnish data -----------------------------------------
 
 # Preperate the Finnish data
-fert_fin <- read.csv("U:/data/fin/birth_registers/tfr_ratios_maakunta.csv",
+fert_fin <- read.csv(paths_countries$path_fin,
                      encoding = "latin1")
 
 # Remove the X column
@@ -51,7 +54,7 @@ fert_fin_nat <- fert_fin |>
 ### Australian data -----------------------
 
 # Prepare the Australian data
-load("U:/data/aus/fertility_rates/asfr_aus.Rda")
+load(paths_countries$path_aus)
 
 # Aggregate the ASFR to TFRs
 fert_aus <- aggregate(asfr_aus ~ year + region + sex, data = asfr_aus, FUN = sum)
@@ -79,7 +82,7 @@ fert_esp_nat$tfr_ratio <- with(fert_esp_nat, tfr_male / tfr_female)
 fert_esp_nat <- fert_esp_nat[, c("year", "tfr_female", "tfr_male", "tfr_ratio")]
 
 # Create regional tfr
-load("U:/data/esp/fertility_rates/tfr_esp.Rda")
+load(paths_countries$path_esp)
 fert_esp <- tfr_esp_reg[, c("region", "year", "tfr_female", "tfr_male", "tfr_ratio")]
 
 # Create the country column
@@ -90,7 +93,7 @@ rm(list = ls(pattern = "tfr_esp"))
 ### French data -----------------------------
 
 # Prepare the French data
-load("U:/data/fra/fertility_rates/data/asfr_fra.Rda")
+load(paths_countries$path_fra)
 
 # Create the regional data
 fert_fra <- asfr_fra |> 
@@ -118,7 +121,7 @@ rm(asfr_fra)
 ### Mexican data -----------------------------
 
 # Load the Mexican data fertility data
-load("U:/data/mex/fertility_rates/asfr_mex.Rda")
+load(paths_countries$path_fra)
 
 # Estimate the TFR
 fert_mex <- asfr_mex_reg |>

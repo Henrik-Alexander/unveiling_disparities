@@ -7,6 +7,8 @@
 
 library(data.table)
 library(tidyverse)
+library(sf)
+library(usmap)
 
 # Load the graphics package
 source("functions/Graphics.R")
@@ -27,7 +29,6 @@ source("functions/Graphics.R")
 # Load the subnational data
 load("data/fert_data_subnational.Rda")
 fert_subnat <- as.data.table(fert)
-
 
 # Load the national data
 fert_nat <- fread("data/fert_data_national.csv")
@@ -110,6 +111,147 @@ ggsave("figures/tfr_ratios.svg", height=10, width=10)
 
 # Reviewer 3 ===================================================================
 
+## R3. C1. ----------------------------------------------------------------------
 
+## Note: three maps are missing: US, Spain and Colombia
+
+# Load the country-data
+source("functions/paths.R")
+
+# Load the fertility data for the subnational units
+lapply(paths_countries, function(path) {
+  if (str_detect(path, ".csv")) {
+    fert_fin <- read.csv(paths_countries$path_fin,
+                         encoding = "latin1")
+  } else {
+    load(path, envir = .GlobalEnv)
+  }
+})
+
+
+## Plot the TFR ratios by surface area
+
+# Load the map data
+load("data/map_data/combined_map_data.Rda")
+
+## Load the US map
+us_map <- usmap::us_map(regions="state")
+tfr_usa <- as.data.table(asfr_us)
+tfr_usa <- tfr_usa[, .(tfr_male = sum(asfr_male),
+                       tfr_female = sum(asfr_female),
+                       tfr_ratio = sum(asfr_male) / sum(asfr_female)),
+                   by = .(state, year)]
+us_map <- merge(us_map, tfr_usa, by.x="full", by.y="state")
+us_map <- us_map[, c("full", "year", "tfr_male", "tfr_female", "tfr_ratio")]
+names(us_map) <- c("region", "year", "tfr_male", "tfr_female", "tfr_ratio")
+
+
+## Load the spanish map
+map_files_spain <- list.files("data/map_spain_provinces", ".shp$", full.names=T)
+map_spain <- lapply(map_files_spain, read_sf)
+map_spain <- bind_rows(map_spain)
+
+## Load the Colombian map
+map_col <- read_sf(list.files("data/columbia_map/", pattern=".shp$", full.names=T)[2])
+map_col <- map_col[, c("ADM1_ES")]
+tfr_col <- asfr_col[, .(tfr_ratio = sum(asfr_male)/sum(asfr_female),
+                        tfr_male = sum(asfr_male * middle_age),
+                        tfr_female = sum(asfr_female * middle_age)), by=.(region, year)]
+map_col <- merge(map_col, tfr_col, by.x="ADM1_ES", by.y="region", all=T)
+
+
+# Plot the maps
+ggplot(data=map_data) +
+  geom_sf(aes(fill=country), colour="black") +
+  facet_wrap( ~ country, scales = "free")
+
+# Check and transform to a projected CRS (e.g., UTM) for accurate area
+shape_proj <- st_transform(map_data, 32633)
+
+# Estimate the survface area
+map_data$surface_area <- as.numeric(st_area(shape_proj))/1e+6
+
+  
+# Plot the TFR ratios by population size ---------------------------------------
+
+# Estimate the population size for all countries
+pop_size_col <- asfr_col[, .(pop_size = sum(pop_males + pop_females)), by = .(region, year)]
+
+# Estimate the population size for Germany
+asfr_deu <- as.data.table(asfr_deu)
+pop_size_deu <- asfr_deu[, .(pop_size = sum(exposure_female + exposure_male, na.rm=T)), by = .(region, year)]
+
+# Estimate the population size for the US
+asfr_us <- as.data.table(asfr_us)
+pop_size_us <- asfr_us[, .(pop_size = sum(pop_female + pop_male)), by = .(state, year)]
+setnames(pop_size_us, old="state", new="region")
+
+# Estimate the population size for Spain
+pop_size_esp <- asfr_esp_reg[region != "", .(pop_size = sum(exposure_female + exposure_male)), by = .(region, year)]
+
+# Estimate the population size for France
+pop_size_fra <- asfr_fra[, .(pop_size = sum(exposure_female + exposure_male, na.rm=T)), by = .(region, year)]
+
+# Estimate the population size for Australia
+load("U:/data/aus/fertility_rates/data/asfr_pop_aus.Rda")
+d <- as.data.table(d)
+pop_size_aus <- d[, .(pop_size=sum(exposure_male + exposure_female, na.rm=T)), by = .(region, year)]
+
+# Estimate the population size for Finland
+pop_size_fin <- fread("raw/pop_finland_reproductive_age.csv")
+pop_size_fin <- pop_size_fin[, .(pop_size = sum(`Total Population 31 Dec`)), by = .(Area, Year)]
+setnames(pop_size_fin, old=names(pop_size_fin), new=c("region", "year", "pop_size"))
+
+# Estimate the population size for Mexico
+asfr_mex_reg <- as.data.table(asfr_mex_reg)
+pop_size_mex <- asfr_mex_reg[, .(pop_size = sum(exposure_female + exposure_male, na.rm=T)), by = .(region, year)]
+
+# Combine the population sizes
+pop_size <- rbindlist(mget(ls(pattern = "^pop_size_[a-z]{3}")))
+
+# Merge the population size with the map data
+map_data <- merge(map_data, pop_size, by=c("region", "year"), all=T)
+
+# Estimate the populaton density
+map_data$pop_density <- map_data$pop_size / map_data$surface_area
+
+# Filter the non-missing observations
+map_data <- map_data[!is.na(map_data$tfr_ratio), ]
+
+## Plot the results ----------------------------
+
+# Plot the relationship between surface area and tfr ratio
+ggplot(data = map_data, aes(x=surface_area, y=tfr_ratio)) +
+  geom_smooth(aes(group=country), method = "lm", se=F, colour="grey") +
+  geom_hline(yintercept = 1) +
+  geom_point(aes(colour = country)) +
+  geom_line(aes(colour=country, group = region), alpha=0.3, linewidth=0.5) +
+  scale_x_log10("Surface area (km^2)", labels = scales::unit_format(unit = "K", scale = 1e-3)) +
+  scale_y_log10("TFR ratio (TFR men / TFR women)", n.breaks=10) +
+  scale_colour_viridis_d("Country")
+
+
+# Plot the relationship between surface area and tfr ratio
+ggplot(data = map_data, aes(x=pop_size, y=tfr_ratio, colour=country)) +
+  geom_smooth(aes(group=country), method = "lm", se=F) +
+  geom_hline(yintercept = 1) +
+  geom_point() +
+  geom_line(aes(colour=country, group = region), alpha=0.3, linewidth=0.5) +
+  scale_x_log10("Population size (at reproductive age)", labels = scales::unit_format(unit = "K", scale = 1e-3), expand=c(0, 0)) +
+  scale_y_log10("TFR ratio (TFR men / TFR women)", n.breaks=10) +
+  scale_colour_viridis_d("Country")
+
+
+# Plot the TFR ratios by population density = population size / surface area
+
+# Plot the relationship between surface area and tfr ratio
+ggplot(data = map_data, aes(x=pop_density, y=tfr_ratio, colour=country)) +
+  geom_smooth(aes(group=country), method = "lm", se=F) +
+  geom_hline(yintercept = 1) +
+  geom_point() +
+  geom_line(aes(colour=country, group = region), alpha=0.3, linewidth=0.5) +
+  scale_x_log10("Population density (population/km^2)", expand=c(0, 0)) +
+  scale_y_log10("TFR ratio (TFR men / TFR women)") +
+  scale_colour_viridis_d("Country")
 
 ### END ########################################################################

@@ -51,6 +51,8 @@ ages <- sort(unique(df$age))
 ## Create the data formats -----------------------------------------------------
 
 # Create the matrices
+mat_births_f <- as.matrix(dcast(df, formula = "age ~ region", value.var="births_female"))[, 2:52]
+mat_births_m <- as.matrix(dcast(df, formula = "age ~ region", value.var="births_male"))[, 2:52]
 mat_pop_f <- as.matrix(dcast(df, formula = "age ~ region", value.var="pop_female"))[, 2:52]
 mat_pop_m_count <- mat_pop_m <- as.matrix(dcast(df, formula = "age ~ region", value.var="pop_male"))[, 2:52]
 mat_asfr_f <- as.matrix(dcast(df, formula = "age ~ region", value.var="asfr_female"))[, 2:52]
@@ -145,9 +147,51 @@ for(i in 2:ncol(sr)) {
 points(ages, goal_sr, col="red")
 
 
+# Estimate the counterfactual asfr for men
+mat_asfr_m_count <- mat_births_m / mat_pop_m_count
+
+# Estimate the TFRs
+res_count <- data.table("region" =colnames(mat_asfr_m), "TFR men (count)" = colSums(mat_asfr_m_count), "TFR men (observed)"=colSums(mat_asfr_m), "TFR women (observed)" = colSums(mat_asfr_f))
+us_count <- data.table("region" = "United States", 
+                       "TFR men (count)" = sum(rowSums(mat_births_m) / rowSums(mat_pop_m_count)),
+                       "TFR men (observed)"=  sum(rowSums(mat_births_m) / rowSums(mat_pop_m)), 
+                       "TFR women (observed)" = sum(rowSums(mat_births_f) / rowSums(mat_pop_f)))
+
+# Bind the data together
+us_count <- rbindlist(list(res_count, us_count))
+
+# Estimate the TFR ratios
+us_count[, tfr_ratio := `TFR men (observed)` / `TFR women (observed)`]
+us_count[, tfr_ratio_count := `TFR men (count)` / `TFR women (observed)`]
+
+# Country level
+us_count[, country_level := ifelse(region == "United States", "National", "Regional")]
+
+# Plot the results
+ggplot(data=us_count, aes(x=fct_reorder(region, tfr_ratio))) +
+  geom_hline(yintercept = 1) +
+  geom_linerange(aes(ymin = tfr_ratio, ymax=tfr_ratio_count), colour="grey") +
+  geom_point(aes(y = tfr_ratio, colour = "Observed")) + 
+  geom_point(aes(y = tfr_ratio_count, colour = "Counterfactual")) +
+  geom_text(aes(y = sqrt(tfr_ratio * tfr_ratio_count), label = round(tfr_ratio - tfr_ratio_count, 2))) +
+  coord_flip() +
+  scale_colour_viridis_d("") +
+  scale_y_log10("TFR ratio") +
+  theme(axis.title.y=element_blank()) 
+ggsave("figures/count_sim_tfr_ratio.pdf", height=20, width=12, unit="cm")
 
 
-# R2 C4 ------------------------------------------------------------------------
+# Estimate the number of births
+tot_births_sim <- sum(mat_asfr_m * mat_pop_m_count)
+tot_births_obs <- sum(mat_pop_f * mat_asfr_f)
+tot_births_obs_m <- sum(mat_pop_m * mat_births_m)
+
+# Difference in births
+diff_births <- tot_births_sim - tot_births_obs
+rel_diff_births <- round(100 * diff_births / tot_births_obs, 2)
+
+
+# R2 C4 mat_asfr_m# R2 C4 ------------------------------------------------------------------------
 
 # Define the coordinates
 min_x <- 0.5
